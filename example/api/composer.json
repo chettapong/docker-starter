@@ -1,0 +1,8 @@
+{
+  "name": "docker-start",
+  "license": "MIT",
+  "type": "project",
+  "require": {
+      "php": "^7.1.3"
+  }
+}

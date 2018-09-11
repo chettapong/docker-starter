@@ -1,0 +1,82 @@
+version: '3'
+services:
+  webserver:
+    image: nginx:alpine
+    container_name: ${WEBSERVER_CONTAINER_NAME}
+    volumes:
+      - ./app/html:/usr/share/nginx/html
+      - ./lets-encrypt/certs:/usr/share/nginx/certs:rw
+      - ./lets-encrypt/www:/usr/share/nginx/letsencrypt
+      - ./nginx/conf:/etc/nginx:ro
+      - ./nginx/log:/var/log/nginx
+      - api:/var/www/api
+    ports:
+      - ${WEBSERVER_EXPOSE_PORT}:80
+      - ${WEBSERVER_SSL_EXPOSE_PORT}:443
+    restart: always
+
+  mysql:
+    image: mariadb:10.3
+    container_name: ${MYSQL_CONTAINER_NAME}
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Bangkok
+    # volumes:
+    #   - ./mariadb/storage/mysql:/var/lib/mysql
+    # Uncomment lines below if you want to make mariadb server be available outside the bridge
+    # ports:
+    #   - ${MYSQL_EXPOSE_PORT}:3306
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: always
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ${PHPMYADMIN_CONTAINER_NAME}
+    depends_on:
+      - mysql
+    ports:
+      - ${PHPMYADMIN_EXPOSE_PORT}:80
+    restart: always
+
+  api:
+    image: api
+    container_name: ${API_CONTAINER_NAME}
+    build:
+      dockerfile: Dockerfile
+      context: ${API_CONTEXT}
+    volumes:
+      - ${API_VOLUME_PATH}:/var/www/api
+      - vendor
+
+  # Uncomment lines below if you want to use mssql server
+  sqlsrv:
+    image: microsoft/mssql-server-linux
+    container_name: ${MSSQL_CONTAINER_NAME}
+    restart: always
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      # MSSQL_PID = Developer, Express, Standard, Enterprise, EnterpriseCore, <valid product id>
+      MSSQL_PID: ${MSSQL_PID}
+    ports:
+      - ${MSSQL_EXPOSE_PORT}:1433
+    restart: always
+
+  # Uncomment lines below if you want to use vpn network
+  vpn:
+    image: auchandirect/forticlient
+    container_name: ${VPN_CONTAINER_NAME}
+    privileged: true
+    environment:
+      VPNADDR: ${VPN_ADDRESS}
+      VPNUSER: ${VPN_USERNAME}
+      VPNPASS: ${VPN_PASSWORD}
+
+volumes:
+  api:
+
+networks:
+  default:
+    external:
+      name: ${NETWORK_NAME}
